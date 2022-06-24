@@ -15,7 +15,15 @@ void *tatris_print();
 
 void invisible();
 void display_init();
-void block_move(int x);
+
+void new_block();
+
+void move_right();
+void move_left();
+void move_down();
+void move_turn();
+
+void block_clear();
 int block_chek(int x);
 void block_erase();
 void block_wirte();
@@ -25,16 +33,6 @@ typedef struct {
 } Block;
 
 Block BB;
-
-  // 위치, xy, 0~3
-// int I[4][2][4] = {{{-1, 0, 1, 2}, // 상
-//                    {0, 0, 0, 0}}, 
-//                   {{0, 0, 0, 0},  // 우
-//                    {-1, 0, 1, 2}},
-//                   {{-2, -1, 0, 1}, // 하
-//                    {0, 0, 0, 0}},
-//                   {{0, 0, 0, 0},   // 좌
-//                    {-2, -1, 0, 1}}};
 
 int block[7][4][2][4] = {{{{-1, 0, 1, 2}, // 상 // I
                            {0, 0, 0, 0}}, 
@@ -54,53 +52,50 @@ int block[7][4][2][4] = {{{{-1, 0, 1, 2}, // 상 // I
                           {{0, 1, 0, 1},   // 좌
                            {0, 0, 1, 1}}},
 
-                         {{{0, 1, 0, 2}, // 상 // L
-                           {0, 0, -1, 0}}, 
-                          {{0, -1, 0, 0},  // 우
-                           {0, 0, 1, 2}},
+                         {{{0, 1, 0, 0}, // 상 // L
+                           {0, 0, -1, -2}}, 
+                          {{0, 1, 2, 0},  // 우
+                           {0, 0, 0, 1}},
                           {{0, -1, 0, 0}, // 하
-                           {0, 0, 1, 1}},
-                          {{0, 1, 0, 0},   // 좌
-                           {0, 0, -1, -2}}},
+                           {0, 0, 1, 2}},
+                          {{0, -1, -2, 0},   // 좌
+                           {0, 0, 0, -1}}},
                            
-                          {{{0, 1, 0, 2}, // 상 // RL
-                           {0, 0, -1, 0}}, 
-                          {{0, -1, 0, 0},  // 우
+                         {{{0, -1, 0, 0}, // 상 // RL
+                           {0, 0, -1, -2}}, 
+                          {{0, 0, 1, 2},  // 우
+                           {0, -1, 0, 0}},
+                          {{0, 1, 0, 0}, // 하
                            {0, 0, 1, 2}},
-                          {{0, -1, 0, 0}, // 하
-                           {0, 0, 1, 1}},
-                          {{0, 1, 0, 0},   // 좌
-                           {0, 0, -1, -2}}},
+                          {{0, 0, -1, -2},   // 좌
+                           {0, 1, 0, 0}}},
 
-                          {{{0, 1, 0, 2}, // 상 // N
-                           {0, 0, -1, 0}}, 
-                          {{0, -1, 0, 0},  // 우
-                           {0, 0, 1, 2}},
-                          {{0, -1, 0, 0}, // 하
-                           {0, 0, 1, 1}},
-                          {{0, 1, 0, 0},   // 좌
-                           {0, 0, -1, -2}}},
+                         {{{0, 1, 0, -1}, // 상 // N
+                           {0, 0, -1, -1}}, 
+                          {{0, 0, 1, 1},  // 우
+                           {0, 1, 0, -1}},
+                          {{0, 1, 0, -1}, // 하
+                           {0, 0, -1, -1}},
+                          {{0, 0, 1, 1},   // 좌
+                           {0, 1, 0, -1}}},
 
-                          {{{0, 1, 0, 2}, // 상 // RN
-                           {0, 0, -1, 0}}, 
-                          {{0, -1, 0, 0},  // 우
-                           {0, 0, 1, 2}},
-                          {{0, -1, 0, 0}, // 하
-                           {0, 0, 1, 1}},
-                          {{0, 1, 0, 0},   // 좌
-                           {0, 0, -1, -2}}},
+                         {{{0, -1, 0, 1}, // 상 // RN
+                           {0, 0, -1, -1}}, 
+                          {{0, 0, 1, 1},  // 우
+                           {0, -1, 0, 1}},
+                          {{0, -1, 0, 1}, // 하
+                           {0, 0, -1, -1}},
+                          {{0, 0, 1, 1},   // 좌
+                           {0, -1, 0, 1}}},
 
-                          {{{0, 1, 0, 2}, // 상 // t
-                           {0, 0, -1, 0}}, 
-                          {{0, -1, 0, 0},  // 우
-                           {0, 0, 1, 2}},
-                          {{0, -1, 0, 0}, // 하
-                           {0, 0, 1, 1}},
-                          {{0, 1, 0, 0},   // 좌
-                           {0, 0, -1, -2}}},
-
-
-
+                         {{{0, -1, 1, 0}, // 상 // t
+                           {0, 0, 0, -1}}, 
+                          {{0, 1, 0, 0},  // 우
+                           {0, 0, -1, 1}},
+                          {{0, 0, -1, 1}, // 하
+                           {0, 1, 0, 0}},
+                          {{0, -1, 0, 0},   // 좌
+                           {0, 0, -1, 1}}}
                            };
 
 
@@ -110,10 +105,7 @@ int main(void)
     invisible();
     display_init();
 	
-    BB.y = 2;
-    BB.x = WIDTH/2;
-    BB.f = 0;
-    BB.d = 0;
+    new_block();
 
     block_wirte();
     
@@ -156,7 +148,7 @@ void *input(){
                 block_wirte();                
                 break;
             case 'e':
-                block_move(3);
+                move_turn();
                 break;
             case 'w':
                 block_erase();
@@ -164,13 +156,13 @@ void *input(){
                 block_wirte();
                 break;
             case 's':
-                block_move(2);
+                move_down();
                 break;
             case 'a':
-                block_move(1);
+                move_left();
                 break;
             case 'd':
-                block_move(0);
+                move_right();
                 break;
         }
         
@@ -178,30 +170,7 @@ void *input(){
     }
 }
 
-void block_move(int x){
-    
-    if(block_chek(x) == 0)
-        return ;
-        
-    block_erase();
-    switch (x)
-    {
-    case 0: // 오른쪽
-        ++BB.x;
-        break;
-    case 1: // 왼쪽    
-        --BB.x;
-        break;
-    case 2: // 아래
-        ++BB.y;
-        break;
-    case 3: // 회전
-        BB.d = (BB.d+1)%4;
-        break;
-    
-    }
-    block_wirte();
-}
+
 
 int block_chek(int x){
     int i;
@@ -229,6 +198,76 @@ int block_chek(int x){
     }
     
     return 1;
+}
+
+void move_right(){
+    
+    if(!block_chek(0))
+        return ;
+
+    block_erase();
+    ++BB.x;
+    block_wirte();
+}
+
+void move_left(){
+    if(!block_chek(1))
+        return ;
+
+    block_erase();
+    --BB.x;
+    block_wirte();
+}
+
+void move_down(){
+    if(!block_chek(2)){
+        for (int i = 0; i < 4; i++)
+            map[BB.y+block[BB.f][BB.d][1][i]][BB.x+block[BB.f][BB.d][0][i]] = 'I';
+
+        block_clear();
+        new_block();
+        return ;
+    }
+
+    block_erase();
+    ++BB.y;
+    block_wirte();        
+}
+
+void move_turn(){
+
+    block_erase();
+    BB.d = (BB.d +1)%4;
+    block_wirte();
+}
+
+void new_block(){
+    BB.y = 2;
+    BB.x = WIDTH/2;
+    BB.f = 0; // 랜덤
+    BB.d = 0; // 랜덤
+}
+
+int clear_chek(int idx){
+    for (int i = 1; i < WIDTH-1; i++){
+        if (map[idx][i] != 'I'){
+            return 0;
+        }
+    }
+    return 1;
+}
+
+void block_clear(){
+    for (int i = HEIGHT-2; i >= 0; i--){
+        if(clear_chek(i)){
+            for (int j = 1; j < WIDTH-2; j++){
+                map[i][j] = ' ';
+            }
+        }
+    }
+
+    
+    
 }
 
 void block_erase(){
