@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <string.h>
+#include <time.h>
 
 #define HEIGHT 19
 #define WIDTH 18
@@ -16,7 +17,7 @@ void *tatris_print();
 void invisible();
 void display_init();
 
-void new_block();
+void new_block(int f_rand, int d_rand);
 
 void move_right();
 void move_left();
@@ -104,10 +105,10 @@ int main(void)
     system("clear");
     invisible();
     display_init();
-	
-    new_block();
 
-    block_wirte();
+    srand(time(NULL));
+	
+    new_block(rand()%7, rand()%4);
     
     pthread_t pt1, pt2;
 
@@ -225,7 +226,7 @@ void move_down(){
             map[BB.y+block[BB.f][BB.d][1][i]][BB.x+block[BB.f][BB.d][0][i]] = 'I';
 
         block_clear();
-        new_block();
+        new_block(rand()%7, rand()%4);
         return ;
     }
 
@@ -236,38 +237,62 @@ void move_down(){
 
 void move_turn(){
 
+    
+
     block_erase();
     BB.d = (BB.d +1)%4;
     block_wirte();
 }
 
-void new_block(){
+void new_block(int f_rand, int d_rand){
     BB.y = 2;
     BB.x = WIDTH/2;
-    BB.f = 0; // 랜덤
-    BB.d = 0; // 랜덤
+    BB.f = f_rand; // 랜덤
+    BB.d = d_rand; // 랜덤
+
+    block_wirte();
 }
 
-int clear_chek(int idx){
-    for (int i = 1; i < WIDTH-1; i++){
+int I_chek(int idx){
+    for (int i = 1; i < WIDTH-2; i++){
         if (map[idx][i] != 'I'){
             return 0;
         }
-    }
+    }   
+    return 1;
+}
+
+int empty_chek(int idx){
+    for (int i = 1; i < WIDTH-2; i++){
+        if (map[idx][i] != ' '){
+            return 0;
+        }
+    }   
     return 1;
 }
 
 void block_clear(){
-    for (int i = HEIGHT-2; i >= 0; i--){
-        if(clear_chek(i)){
+    for (int i = HEIGHT-2; i >= 0; i--){ // 꽉찬 줄 지우기
+        if(I_chek(i)){
             for (int j = 1; j < WIDTH-2; j++){
                 map[i][j] = ' ';
             }
         }
     }
 
-    
-    
+
+    int empty = HEIGHT-2, full;
+
+    while (full > 0){
+        while(empty>0 && !empty_chek(empty)) empty--;
+        full = empty-1;
+        while (full>0 && empty_chek(full)) full--;
+
+        for (int i = 1; i < WIDTH-2; i++){
+            map[empty][i] = map[full][i];
+            map[full][i] = ' ';
+        }
+    }    
 }
 
 void block_erase(){
@@ -289,3 +314,5 @@ void invisible(){
 	term.c_cc[VTIME] = 0;       //버퍼 비우는 시간 (timeout)
 	tcsetattr(STDIN_FILENO, TCSANOW, &term);
 }
+
+
