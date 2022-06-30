@@ -6,15 +6,17 @@
 #include <string.h>
 #include <time.h>
 
-#define HEIGHT 19
-#define WIDTH 18
+#define HEIGHT 15
+#define WIDTH 14
 
 char map[HEIGHT][WIDTH];
 
 void *input();
 void *tatris_print();
+void *timeer();
 
 void invisible();
+void visible();
 void display_init();
 
 void new_block(int f_rand, int d_rand);
@@ -31,6 +33,7 @@ void block_wirte();
 
 typedef struct {
     int x, y, f, d;
+    clock_t prev;
 } Block;
 
 Block BB;
@@ -96,8 +99,7 @@ int block[7][4][2][4] = {{{{-1, 0, 1, 2}, // 상 // I
                           {{0, 0, -1, 1}, // 하
                            {0, 1, 0, 0}},
                           {{0, -1, 0, 0},   // 좌
-                           {0, 0, -1, 1}}}
-                           };
+                           {0, 0, -1, 1}}}};
 
 
 int main(void)
@@ -110,28 +112,56 @@ int main(void)
 	
     new_block(rand()%7, rand()%4);
     
-    pthread_t pt1, pt2;
+    pthread_t pt1, pt2, pt3;
 
+    pthread_create(&pt3, NULL, timeer, NULL);
     pthread_create(&pt1, NULL, input, NULL);
     pthread_create(&pt2, NULL, tatris_print, NULL);
-
+    
     pthread_join(pt1, NULL);
-    pthread_join(pt2, NULL);
+    
+    memcpy(&map[HEIGHT/2][2], "game over",  sizeof(char)*9);
+    printf(u8"\033[1;1H");
+    for (int i = 2; i < HEIGHT; i++)
+        printf("%s\n", map[i]);
+
+    visible();
 
     return 0;
 }
 
 void display_init(){
-    for (int i = 0; i < HEIGHT-1; i++)
-        memcpy(map[i],"I               I\0", WIDTH);
-    memcpy(map[HEIGHT-1],"IIIIIIIIIIIIIIIII\0", WIDTH);
+    for (int i = 0; i < HEIGHT-1; i++){
+        map[i][0] = 'I';
+        map[i][WIDTH-2] = 'I';
+        map[i][WIDTH-1] = '\0';
+        for (int j = 1; j < WIDTH-2; j++)
+            map[i][j] = ' ';        
+    }
+    
+    for (int i = 0; i < WIDTH-1; i++)
+        map[HEIGHT-1][i] = 'I';
+    map[HEIGHT-1][WIDTH-1] = '\0';
 }
 
+void *timeer(){
+    clock_t now;
+    int i=0;
+    while (1){
+    
+        now = clock();
+        if ((float)(now - BB.prev)/CLOCKS_PER_SEC > 1.0){
+            move_down();
+            BB.prev = clock();
+            
+        }
+    }
+}
 
 void *tatris_print(){
     while(1){
         printf(u8"\033[1;1H");
-        for (int i = 0; i < HEIGHT; i++){
+        for (int i = 2; i < HEIGHT; i++){
             printf("%s\n", map[i]);
         }
         usleep(1000);
@@ -166,7 +196,6 @@ void *input(){
                 move_right();
                 break;
         }
-        
         usleep(1000);
     }
 }
@@ -194,8 +223,16 @@ int block_chek(int x){
                 return 0;
         break;
     case 3: // 회전
-        return 1;
+        for (i = 0; i < 4; i++)
+            if(map[BB.y+block[BB.f][(BB.d+1)%4][1][i]][BB.x+block[BB.f][(BB.d+1)%4][0][i]] == 'I')
+                return 0;
         break;
+    case 4: // 제자리
+        for (i = 0; i < 4; i++)
+            if(map[BB.y+block[BB.f][BB.d][1][i]][BB.x+block[BB.f][BB.d][0][i]] == 'I')
+                return 0;
+        
+    break;
     }
     
     return 1;
@@ -232,16 +269,23 @@ void move_down(){
 
     block_erase();
     ++BB.y;
-    block_wirte();        
+    block_wirte();
+    BB.prev = clock(); 
 }
 
 void move_turn(){
 
-    
+    if(!block_chek(3))
+        return ;
 
     block_erase();
     BB.d = (BB.d +1)%4;
     block_wirte();
+}
+
+void game_over(){
+
+    pthread_exit((void *)1);
 }
 
 void new_block(int f_rand, int d_rand){
@@ -249,6 +293,12 @@ void new_block(int f_rand, int d_rand){
     BB.x = WIDTH/2;
     BB.f = f_rand; // 랜덤
     BB.d = d_rand; // 랜덤
+    BB.prev = clock();
+
+    if (!block_chek(4)){
+        game_over();
+    }
+        
 
     block_wirte();
 }
@@ -267,7 +317,7 @@ int empty_chek(int idx){
         if (map[idx][i] != ' '){
             return 0;
         }
-    }   
+    }
     return 1;
 }
 
@@ -281,7 +331,7 @@ void block_clear(){
     }
 
 
-    int empty = HEIGHT-2, full;
+    int empty = HEIGHT-2 ,full = HEIGHT-2; 
 
     while (full > 0){
         while(empty>0 && !empty_chek(empty)) empty--;
@@ -315,4 +365,13 @@ void invisible(){
 	tcsetattr(STDIN_FILENO, TCSANOW, &term);
 }
 
-
+void visible(){
+    struct termios term;
+    
+	tcgetattr(STDIN_FILENO, &term);
+	term.c_lflag |= ICANON;    
+	term.c_lflag |= ECHO;      
+	term.c_cc[VMIN] = 0;        
+	term.c_cc[VTIME] = 0;      
+	tcsetattr(STDIN_FILENO, TCSANOW, &term);
+}
